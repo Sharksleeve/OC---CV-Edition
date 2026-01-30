@@ -59,8 +59,26 @@ function clawArgs(args) {
   return [CLAWDBOT_ENTRY, ...args];
 }
 
+// Config file names in order of preference (newest first)
+const CONFIG_FILENAMES = ["openclaw.json", "moltbot.json"];
+
 function configPath() {
-  return process.env.CLAWDBOT_CONFIG_PATH?.trim() || path.join(STATE_DIR, "clawdbot.json");
+  // Allow explicit override via env
+  const envPath = process.env.CLAWDBOT_CONFIG_PATH?.trim();
+  if (envPath) return envPath;
+
+  // Check for each config filename in order of preference
+  for (const filename of CONFIG_FILENAMES) {
+    const candidate = path.join(STATE_DIR, filename);
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch {
+      // ignore
+    }
+  }
+
+  // Default to the preferred filename if none exist yet
+  return path.join(STATE_DIR, CONFIG_FILENAMES[0]);
 }
 
 function isConfigured() {
@@ -120,6 +138,7 @@ async function startGateway() {
       ...process.env,
       CLAWDBOT_STATE_DIR: STATE_DIR,
       CLAWDBOT_WORKSPACE_DIR: WORKSPACE_DIR,
+      CLAWDBOT_CONFIG_PATH: configPath(),
     },
   });
 
@@ -420,6 +439,7 @@ function runCmd(cmd, args, opts = {}) {
         ...process.env,
         CLAWDBOT_STATE_DIR: STATE_DIR,
         CLAWDBOT_WORKSPACE_DIR: WORKSPACE_DIR,
+        CLAWDBOT_CONFIG_PATH: configPath(),
       },
     });
 
